@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>优雅文字卡片生成器</title>
+    <!-- 引入字体和样式库 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.5.0/nouislider.min.css" />
+    <style>
+        :root {
+            --primary-color: #3b82f6; /* 主色调 */
+            --primary-hover: #2563eb; /* 悬停时的主色调 */
+            --bg-color: #f8fafc; /* 背景颜色 */
+            --card-bg: #ffffff; /* 卡片背景颜色 */
+            --text-primary: #1e293b; /* 主要文字颜色 */
+            --text-secondary: #64748b; /* 次要文字颜色 */
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1); /* 阴影效果 */
+            --radius-lg: 16px; /* 大圆角 */
+            --default-card-bg: #4158D0; /* 默认卡片背景颜色 */
+            --default-text-color: #ffffff; /* 默认文字颜色 */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box; /* 统一盒模型 */
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: var(--bg-color);
+            font-family: 'Noto Sans SC', sans-serif;
+            color: var(--text-primary);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .app-title {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .preview-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: var(--bg-color);
+            border-radius: var(--radius-lg);
+        }
+
+        .card {
+            width: 100%;
+            max-width: 400px;
+            height: 450px; /* 卡片高度 */
+            padding: 1.5rem;
+            background-color: var(--default-card-bg);
+            position: relative;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.2); /* 蒙层颜色 */
+            pointer-events: none;
+            transition: background 0.3s ease;
+        }
+
+        #cardText {
+            position: relative;
+            font-size: var(--font-size, 24px);
+            color: var(--text-color, var(--default-text-color));
+            line-height: 1.5;
+            word-break: break-word;
+            transition: all 0.3s ease;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-weight: 500;
+            outline: none;
+        }
+
+        .download-btn {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border: none;
+            border-radius: var(--radius-lg);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .download-btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .download-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .color-options {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .color-option:hover {
+            border-color: var(--primary-color);
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                height: 300px; /* 手机界面高度 */
+            }
+
+            .app-title {
+                font-size: 1.5rem;
+            }
+
+            .download-btn {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="app-title">优雅文字卡片生成器</h1>
+        <div class="editor-container">
+            <div class="controls">
+                <div class="control-group">
+                    <label>背景颜色</label>
+                    <div class="color-options" id="bgColorOptions">
+                        <!-- 颜色选项 -->
+                        <div class="color-option" style="background-color: #f5f5dc;" data-color="#f5f5dc"></div>
+                        <div class="color-option" style="background-color: #d2b48c;" data-color="#d2b48c"></div>
+                        <div class="color-option" style="background-color: #c0c0c0;" data-color="#c0c0c0"></div>
+                        <div class="color-option" style="background-color: #deb887;" data-color="#deb887"></div>
+                        <div class="color-option" style="background-color: #bc8f8f;" data-color="#bc8f8f"></div>
+                        <div class="color-option" style="background-color: #f4a460;" data-color="#f4a460"></div>
+                        <div class="color-option" style="background-color: #e9967a;" data-color="#e9967a"></div>
+                        <div class="color-option" style="background-color: #8fbc8f;" data-color="#8fbc8f"></div>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label for="fontSizeInput">字体大小 (<span id="fontSizeValue">24</span>px)</label>
+                    <div id="fontSizeSlider"></div>
+                </div>
+                <div class="control-group">
+                    <label for="borderRadiusInput">圆角幅度 (<span id="borderRadiusValue">16</span>px)</label>
+                    <div id="borderRadiusSlider"></div>
+                </div>
+                <div class="control-group">
+                    <label for="overlayOpacityInput">蒙层透明度 (<span id="overlayOpacityValue">0.2</span>)</label>
+                    <div id="overlayOpacitySlider"></div>
+                </div>
+            </div>
+
+            <div class="preview-container">
+                <div class="card" id="card">
+                    <div class="overlay" id="overlay"></div>
+                    <span id="cardText" contenteditable="true" onfocus="checkEmptyText()" onblur="checkEmptyText()">示例文字</span>
+                </div>
+            </div>
+
+            <button class="download-btn" onclick="downloadCard()">下载卡片</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.5.0/nouislider.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        const card = document.getElementById('card'); // 获取卡片元素
+        const cardText = document.getElementById('cardText'); // 获取卡片文字元素
+        const overlay = document.getElementById('overlay'); // 获取蒙层元素
+        const maxChars = 100; // 最大字符数
+
+        // 初始化滑块
+        const fontSizeSlider = document.getElementById('fontSizeSlider');
+        const borderRadiusSlider = document.getElementById('borderRadiusSlider');
+        const overlayOpacitySlider = document.getElementById('overlayOpacitySlider');
+
+        noUiSlider.create(fontSizeSlider, {
+            start: 24,
+            connect: [true, false],
+            range: {
+                'min': 12,
+                'max': 48
+            }
+        });
+
+        noUiSlider.create(borderRadiusSlider, {
+            start: 16,
+            connect: [true, false],
+            range: {
+                'min': 0,
+                'max': 50
+            }
+        });
+
+        noUiSlider.create(overlayOpacitySlider, {
+            start: 0.2,
+            connect: [true, false],
+            range: {
+                'min': 0,
+                'max': 1
+            },
+            step: 0.05
+        });
+
+        // 更新显示的数值
+        function updateDisplayValues() {
+            document.getElementById('fontSizeValue').textContent = fontSizeSlider.noUiSlider.get();
+            document.getElementById('borderRadiusValue').textContent = borderRadiusSlider.noUiSlider.get();
+            document.getElementById('overlayOpacityValue').textContent = overlayOpacitySlider.noUiSlider.get();
+        }
+
+        // 检查并设置占位符文本
+        function checkEmptyText() {
+            if (cardText.textContent.trim() === '') {
+                cardText.textContent = '示例文字';
+            }
+        }
+
+        // 限制输入字符数
+        cardText.addEventListener('input', () => {
+            if (cardText.textContent.length > maxChars) {
+                cardText.textContent = cardText.textContent.slice(0, maxChars);
+                alert('已达到最大字符数限制');
+            }
+        });
+
+        // 计算颜色亮度
+        function getLuminance(hex) {
+            const rgb = parseInt(hex.slice(1), 16);
+            const r = (rgb >> 16) & 0xff;
+            const g = (rgb >> 8) & 0xff;
+            const b = (rgb >> 0) & 0xff;
+            return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        }
+
+        // 根据背景颜色设置字体颜色
+        function setTextColorBasedOnBackground(bgColor) {
+            const luminance = getLuminance(bgColor);
+            const textColor = luminance > 128 ? '#000000' : '#ffffff';
+            card.style.setProperty('--text-color', textColor);
+        }
+
+        // 事件监听器
+        document.querySelectorAll('#bgColorOptions .color-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const bgColor = option.dataset.color;
+                card.style.setProperty('--background-color', bgColor);
+                card.style.background = bgColor;
+                setTextColorBasedOnBackground(bgColor);
+            });
+        });
+
+        fontSizeSlider.noUiSlider.on('update', (values) => {
+            card.style.setProperty('--font-size', `${values[0]}px`);
+            updateDisplayValues();
+        });
+
+        borderRadiusSlider.noUiSlider.on('update', (values) => {
+            card.style.setProperty('--radius-lg', `${values[0]}px`);
+            updateDisplayValues();
+        });
+
+        overlayOpacitySlider.noUiSlider.on('update', (values) => {
+            const opacity = values[0];
+            overlay.style.background = `rgba(255, 255, 255, ${opacity})`;
+            updateDisplayValues();
+        });
+
+        async function downloadCard() {
+            try {
+                const downloadBtn = document.querySelector('.download-btn');
+                downloadBtn.disabled = true;
+                downloadBtn.textContent = '正在生成...';
+
+                const canvas = await html2canvas(card, {
+                    backgroundColor: null,
+                    scale: 2,
+                    logging: false,
+                    useCORS: true
+                });
+                
+                const link = document.createElement('a');
+                link.download = '文字卡片.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = '下载卡片';
+            } catch (error) {
+                console.error('导出卡片时发生错误:', error);
+                alert('导出卡片失败，请重试');
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = '下载卡片';
+            }
+        }
+
+        // 初始化显示的数值
+        updateDisplayValues();
+
+        // 设置默认背景颜色为非白色
+        card.style.setProperty('--background-color', '#4158D0');
+        setTextColorBasedOnBackground('#4158D0');
+    </script>
+</body>
+</html>
